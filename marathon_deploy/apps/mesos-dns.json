@@ -1,0 +1,18 @@
+{
+    "id": "mesos-dns",
+    "instances": 2,
+    "cpus": 1.0, 
+    "mem": 1024,
+    "cmd": "/usr/local/bin/mesos-dns -config=/etc/mesos-dns/config.json",
+    "constraints": [
+        ["speciality", "CLUSTER", "dns"],
+        ["hostname", "UNIQUE"]
+    ],
+    "healthChecks": [
+        {
+            "protocol": "COMMAND",
+            "command": { "value": "curl -f -X GET http://localhost:8053/v1/version" },
+            "maxConsecutiveFailures": 3
+        }
+    ]
+}

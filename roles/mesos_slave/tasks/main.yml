@@ -1,0 +1,244 @@
+---
+
+# Name:          main.yaml
+# Author:        Daniel Middleton <me@daniel-middleton.com>
+# Description:   Ansible Playbook for Mesos slave hosts.
+
+###############################################################################
+############################ Package installation #############################
+
+### Docker
+
+# Add Docker APT repo
+- name: Add Docker APT key
+  apt_key: url=https://get.docker.com/gpg state=present
+  register: docker_apt_key_added
+
+# Add Docker APT repo key
+- name: Add Docker APT repo
+  when: docker_apt_key_added|success
+  apt_repository: >
+                  repo="deb https://get.docker.com/ubuntu docker main"
+                  state=present
+                  update_cache=yes
+  register: docker_apt_repo_added
+
+# Install lxc-docker package
+- name: Install Docker
+  when: docker_apt_repo_added|success
+  apt: >
+       name=lxc-docker
+       update_cache=yes
+  register: docker_installed
+
+### Git
+
+# Install git package
+- name: Install Git
+  when: docker_installed|success
+  apt: >
+       name=git
+       update_cache=yes
+  register: git_installed
+
+### Golang
+
+# Install golang package
+- name: Install Golang
+  when: git_installed|success
+  apt: >
+       name=golang
+       update_cache=yes
+  register: golang_installed
+
+# Create /root/go directory for GOPATH
+- name: Create /root/go directory
+  when: golang_installed|success
+  file: path=/root/go state=directory
+  register: go_dir_created
+
+# Insert a profile.d script to set golang environment variables
+- name: Amend /etc/profile.d/set-golang-env-vars.sh
+  when: go_dir_created|success
+  template: >
+            src=set-golang-env-vars.sh.j2
+            dest=/etc/profile.d/set-golang-env-vars.sh
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: golang_env_vars_amended
+
+### Mesos
+
+# Install mesos package
+- name: Install Mesos
+  when: golang_env_vars_amended|success
+  apt: >
+       name=mesos
+       update_cache=yes
+  register: mesos_installed
+
+### Mesos-DNS
+
+# Copy mesos-dns binary in to place
+- name: Install Mesos-DNS binary
+  when: mesos_installed|success
+  copy: >
+        src=mesos-dns
+        dest=/usr/local/bin/mesos-dns
+        owner=root
+        group=root
+        mode="u=rwx,g=rx,o=rx"
+  register: mesosdns_installed
+
+###############################################################################
+################################ Mesos config #################################
+
+# Amend /etc/mesos/zk
+- name: Amend /etc/mesos/zk
+  when: mesosdns_installed|success
+  template: >
+            src=mesos_zk.j2
+            dest=/etc/mesos/zk
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_zk_config_amended
+
+# Amend /etc/mesos-slave/ip
+- name: Amend /etc/mesos-slave/ip
+  when: mesos_zk_config_amended|success
+  template: >
+            src=ip.j2
+            dest=/etc/mesos-slave/ip
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_ip_config_amended
+
+# Amend /etc/mesos-slave/hostname
+- name: Amend /etc/mesos-slave/hostname
+  when: mesos_ip_config_amended|success
+  template: >
+            src=hostname.j2
+            dest=/etc/mesos-slave/hostname
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_hostname_config_amended
+
+# Amend /etc/mesos-slave/containerizers
+- name: Amend /etc/mesos-slave/containerizers
+  when: mesos_hostname_config_amended|success
+  template: >
+            src=containerizers.j2
+            dest=/etc/mesos-slave/containerizers
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_containerizers_config_amended
+
+# Amend /etc/mesos-slave/executor_registration_timeout
+- name: Amend /etc/mesos-slave/executor_registration_timeout
+  when: mesos_containerizers_config_amended|success
+  template: >
+            src=executor_registration_timeout.j2
+            dest=/etc/mesos-slave/executor_registration_timeout
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_executor_registration_timeout_config_amended
+
+# Amend /etc/default/mesos-slave
+- name: Amend /etc/default/mesos-slave
+  when: mesos_executor_registration_timeout_config_amended|success
+  template: >
+            src=default-mesos-slave.j2
+            dest=/etc/default/mesos-slave
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: default_mesos_slave_config_amended
+
+# Create /etc/mesos-slave/attributes directory
+- name: Create /etc/mesos-slave/attributes directory
+  when: default_mesos_slave_config_amended|success
+  file: path=/etc/mesos-slave/attributes state=directory
+  register: mesos_attributes_dir_created
+
+# Amend /etc/mesos-slave/attributes/speciality
+- name: Amend /etc/mesos-slave/attributes/speciality
+  when: mesos_attributes_dir_created|success
+  template: >
+            src=mesos-attributes-speciality.j2
+            dest=/etc/mesos-slave/attributes/speciality
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_attributes_speciality_amended
+
+###############################################################################
+############################### Mesos-DNS config ##############################
+
+# Create /etc/mesos-dns directory
+- name: Create /etc/mesos-dns directory
+  when: mesos_attributes_speciality_amended|success
+  file: path=/etc/mesos-dns state=directory
+  register: mesosdns_dir_created
+
+# Amend /etc/mesos-dns/config.json
+- name: Amend /etc/mesos-dns/config.json
+  when: mesosdns_dir_created|success
+  template: >
+            src=mesos-dns_config.json.j2
+            dest=/etc/mesos-dns/config.json
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesosdns_config_amended
+
+# Amend /etc/resolv.conf
+- name: Amend /etc/resolv.conf
+  when: mesosdns_config_amended|success
+  template: >
+            src=resolv.conf.j2
+            dest=/etc/resolv.conf
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: resolv_conf_amended
+
+###############################################################################
+############################### System init config ############################
+
+# Amend /etc/init/zookeeper.override
+- name: Amend /etc/init/zookeeper.override
+  when: resolv_conf_amended|success
+  template: >
+            src=zookeeper.override.j2
+            dest=/etc/init/zookeeper.override
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: zk_override_amended
+
+# Amend /etc/init/mesos-master.override
+- name: Amend /etc/init/mesos-master.override
+  when: zk_override_amended|success
+  template: >
+            src=mesos-master.override.j2
+            dest=/etc/init/mesos-master.override
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_master_override_amended
+
+# Update ansibleLastRunLog and ensure all services are in the correct state
+- name: Update ansibleLastRunLog
+  when: mesos_master_override_amended|success
+  shell: echo $(date) > /tmp/ansibleLastRunLog
+  register: ansibleLastRunLog_amended
+  notify:
+    - Stop zookeeper service
+    - Stop mesos-master service
+    - Start mesos-slave service

@@ -1,0 +1,23 @@
+{
+  "zk": "zk://{% for host in groups['mesos_master'] %}{{ hostvars[host]['ansible_default_ipv4']['address'] }}:{{ zk_client_port }}{% if not loop.last %},{% endif %}{% endfor %}/mesos",
+  "masters": [{% for host in groups['mesos_master'] %}"{{ hostvars[host]['ansible_default_ipv4']['address'] }}:{{ mesos_port }}"{% if not loop.last %},{% endif %}{% endfor %}],
+  "refreshSeconds": {{ mdns_refresh_seconds }},
+  "ttl": {{ mdns_ttl }},
+  "domain": "{{ mdns_domain }}",
+  "ns": "{{ mdns_ns }}",
+  "port": {{ mdns_port }},
+  "resolvers": ["{{ mdns_resolver_1 }}","{{ mdns_resolver_2 }}"],
+  "timeout": {{ mdns_timeout }},
+  "listener": "{{ ansible_default_ipv4.address }}",
+  "SOAMname": "{{ mdns_soam_name }}",
+  "SOARname": "{{ mdns_soar_name }}",
+  "SOARefresh": {{ mdns_soa_refresh }},
+  "SOARetry": {{ mdns_soa_retry }},
+  "SOAExpire": {{ mdns_soa_expire }},
+  "SOAMinttl": {{ mdns_soam_inttl }},
+  "dnson": {{ mdns_dns_on|lower }},
+  "httpon": {{ mdns_httpon|lower }},
+  "httpport": {{ mdns_http_port }},
+  "externalon": {{ mdns_external_on|lower }},
+  "recurseon": {{ mdns_recurseon|lower }}
+}

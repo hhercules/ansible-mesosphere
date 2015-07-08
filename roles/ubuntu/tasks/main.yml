@@ -1,0 +1,39 @@
+---
+
+# Name:          main.yaml
+# Author:        Daniel Middleton <me@daniel-middleton.com>
+# Description:   Ansible Playbook for Ubuntu hosts.
+# Documentation: TBC
+# Notes:         TBC
+
+# Amend hosts file
+- name: Amend hosts file
+  template: >
+            src=hosts.j2
+            dest=/etc/hosts
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: hosts_file_amended
+
+# Amend hostname file
+- name: Amend hostname file
+  template: >
+            src=hostname.j2
+            dest=/etc/hostname
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: hostname_file_amended
+
+# Amend runtime hostname
+- name: Amend runtime hostname
+  hostname: name={{ short_hostname }}
+  register: runtime_hostname_amended
+
+# Upgrade system
+- name: Upgrade system
+  apt: >
+       update_cache=yes
+       upgrade=dist
+  register: system_upgraded

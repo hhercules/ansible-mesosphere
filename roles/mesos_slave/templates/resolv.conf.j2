@@ -1,0 +1,9 @@
+{% for host in groups['mesos_slave'] %}
+{% if hostvars[host]['mdns_host'] == 'true' %}
+nameserver {{ hostvars[host]['ansible_default_ipv4']['address'] }}
+{% endif %}
+{% endfor %}
+nameserver 10.103.12.1
+nameserver 10.103.0.3
+nameserver 212.159.8.120
+search cs1cloud.internal

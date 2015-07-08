@@ -1,0 +1,52 @@
+---
+
+# Stop
+
+- name: Stop mesos-slave service
+  service: name=mesos-slave state=stopped
+
+- name: Stop mesos-master service
+  service: name=mesos-master state=stopped
+
+- name: Stop zookeeper service
+  service: name=zookeeper state=stopped
+
+- name: Stop chronos service
+  service: name=chronos state=stopped
+
+- name: Stop marathon service
+  service: name=marathon state=stopped
+
+# Start
+
+- name: Start mesos-slave service
+  service: name=mesos-slave state=started
+
+- name: Start mesos-master service
+  service: name=mesos-master state=started
+
+- name: Start zookeeper service
+  service: name=zookeeper state=started
+
+- name: Start chronos service
+  service: name=chronos state=started
+
+- name: Start marathon service
+  service: name=marathon state=started
+
+# Restart
+
+- name: Restart mesos-slave service
+  service: name=mesos-slave state=restarted
+
+- name: Restart mesos-master service
+  service: name=mesos-master state=restarted
+
+- name: Restart zookeeper service
+  service: name=zookeeper state=restarted
+
+- name: Restart chronos service
+  service: name=chronos state=restarted
+
+- name: Restart marathon service
+  service: name=marathon state=restarted

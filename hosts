@@ -1,0 +1,34 @@
+# This is the default ansible 'hosts' file.
+#
+# It should live in /etc/ansible/hosts
+#
+#   - Comments begin with the '#' character
+#   - Blank lines are ignored
+#   - Groups of hosts are delimited by [header] elements
+#   - You can enter hostnames or ip addresses
+#   - A hostname/ip can be a member of multiple groups
+
+###############################################################################
+############################### Mesos cluster #################################
+
+### Mesos masters
+
+#           FQDN          |         Short Hostname      |    Unique ID
+[mesos_master]
+01.master.mesos.domain.tld short_hostname=mesos-master01 mesos_master_id=1
+02.master.mesos.domain.tld short_hostname=mesos-master02 mesos_master_id=2
+03.master.mesos.domain.tld short_hostname=mesos-master03 mesos_master_id=3
+
+### Mesos slaves
+
+#           FQDN         |         Short Hostname     |  Mesos-DNS?
+[mesos_slave]
+01.slave.mesos.domain.tld short_hostname=mesos-slave01 mdns_host=true
+02.slave.mesos.domain.tld short_hostname=mesos-slave02 mdns_host=true
+03.slave.mesos.domain.tld short_hostname=mesos-slave03 mdns_host=false
+
+### All of the above hosts
+
+[mesos:children]
+mesos_master
+mesos_slave

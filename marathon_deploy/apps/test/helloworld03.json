@@ -1,0 +1,14 @@
+{
+  "id": "helloworld03",
+  "cmd": "/bin/ping bbc.co.uk",
+  "cpus": 0.5,
+  "mem": 64.0,
+  "instances": 3,
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "network": "HOST",
+      "image": "ubuntu:latest"
+    }
+  }
+}

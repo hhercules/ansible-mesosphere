@@ -1,0 +1,24 @@
+---
+
+# Name:          mesos.yaml
+# Author:        Daniel Middleton <me@daniel-middleton.com>
+# Description:   Master Ansible Playbook for mesos cluster
+
+# Base-build all Mesos hosts
+- hosts:
+    - mesos
+  roles:
+    - ubuntu
+    - mesos_base
+
+# Build out Mesos masters
+- hosts:
+    - mesos_master
+  roles:
+    - mesos_master
+
+# Build out Mesos slaves
+- hosts:
+    - mesos_slave
+  roles:
+    - mesos_slave

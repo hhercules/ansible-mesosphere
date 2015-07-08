@@ -1,0 +1,179 @@
+---
+
+# Name:          main.yaml
+# Author:        Daniel Middleton <me@daniel-middleton.com>
+# Description:   Ansible Playbook for Mesos master hosts.
+
+###############################################################################
+############################ Package installation #############################
+
+### Mesosphere
+
+# Install mesosphere meta-package (zookeeper, mesos, marathon, chronos)
+- name: Install Mesosphere
+  apt: >
+       name=mesosphere
+       update_cache=yes
+  register: mesosphere_installed
+
+###############################################################################
+############################## Zookeeper config ###############################
+
+# Amend /etc/zookeeper/conf/myid
+- name: Amend /etc/zookeeper/conf/myid
+  when: mesosphere_installed|success
+  template: >
+            src=myid.j2
+            dest=/etc/zookeeper/conf/myid
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: zk_myid_config_amended
+
+# Amend /etc/zookeeper/conf/zoo.cfg
+- name: Amend /etc/zookeeper/conf/zoo.cfg
+  when: zk_myid_config_amended|success
+  template: >
+            src=zoo.cfg.j2
+            dest=/etc/zookeeper/conf/zoo.cfg
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: zk_zoo_config_amended
+
+###############################################################################
+################################# Mesos config ################################
+
+# Amend /etc/mesos/zk
+- name: Amend /etc/mesos/zk
+  when: zk_zoo_config_amended|success
+  template: >
+            src=mesos_zk.j2
+            dest=/etc/mesos/zk
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_zk_config_amended
+
+# Amend /etc/mesos-master/quorum
+- name: Amend /etc/mesos-master/quorum
+  when: mesos_zk_config_amended|success
+  template: >
+            src=quorum.j2
+            dest=/etc/mesos-master/quorum
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_quorum_config_amended
+
+# Amend /etc/mesos-master/ip
+- name: Amend /etc/mesos-master/ip
+  when: mesos_quorum_config_amended|success
+  template: >
+            src=ip.j2
+            dest=/etc/mesos-master/ip
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_ip_config_amended
+
+# Amend /etc/mesos-master/hostname
+- name: Amend /etc/mesos-master/hostname
+  when: mesos_ip_config_amended|success
+  template: >
+            src=hostname.j2
+            dest=/etc/mesos-master/hostname
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_hostname_config_amended
+
+# Amend /etc/default/mesos-master
+- name: Amend /etc/default/mesos-master
+  when: mesos_hostname_config_amended|success
+  template: >
+            src=mesos-master.j2
+            dest=/etc/default/mesos-master
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_master_amended
+
+###############################################################################
+############################### Marathon config ###############################
+
+# Create /etc/marathon/conf directory
+- name: Create /etc/marathon/conf directory
+  when: mesos_master_amended|success
+  file: path=/etc/marathon/conf state=directory
+  register: marathon_conf_dir_created
+
+# Amend /etc/marathon/conf/hostname
+- name: Amend /etc/marathon/conf/hostname
+  when: marathon_conf_dir_created|success
+  template: >
+            src=hostname.j2
+            dest=/etc/marathon/conf/hostname
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: marathon_hostname_config_amended
+
+# Amend /etc/marathon/conf/master
+- name: Amend /etc/marathon/conf/master
+  when: marathon_hostname_config_amended|success
+  template: >
+            src=marathon_master.j2
+            dest=/etc/marathon/conf/master
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: marathon_master_config_amended
+
+# Amend /etc/marathon/conf/zk
+- name: Amend /etc/marathon/conf/zk
+  when: marathon_master_config_amended|success
+  template: >
+            src=marathon_zk.j2
+            dest=/etc/marathon/conf/zk
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: marathon_zk_config_amended
+
+# Amend /etc/default/marathon
+- name: Amend /etc/default/marathon
+  when: marathon_zk_config_amended|success
+  template: >
+            src=default_marathon.j2
+            dest=/etc/default/marathon
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: default_marathon_config_amended
+
+###############################################################################
+############################## System init config #############################
+
+# Amend /etc/init/mesos-slave.override
+- name: Amend /etc/init/mesos-slave.override
+  when: default_marathon_config_amended|success
+  template: >
+            src=mesos-slave.override.j2
+            dest=/etc/init/mesos-slave.override
+            owner=root
+            group=root
+            mode="u=rw,g=r,o=r"
+  register: mesos_slave_override_amended
+
+# Update ansibleLastRunLog and ensure all services are in the correct state
+- name: Update ansibleLastRunLog
+  when: mesos_slave_override_amended|success
+  shell: echo $(date) > /tmp/ansibleLastRunLog
+  register: ansibleLastRunLog_amended
+  notify:
+    - Stop mesos-slave service
+    - Start zookeeper service
+    - Start mesos-master service
+    - Start chronos service
+    - Start marathon service

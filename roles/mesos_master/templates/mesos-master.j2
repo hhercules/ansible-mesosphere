@@ -1,0 +1,3 @@
+ZK='zk://{% for host in groups['mesos_master'] %}{{ hostvars[host]['ansible_default_ipv4']['address'] }}:{{ zk_client_port }}{% if not loop.last %},{% endif %}{% endfor %}/mesos'
+PORT={{ mesos_port }}
+CLUSTER='{{ mesos_cluster_name }}'
